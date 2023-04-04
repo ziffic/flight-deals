@@ -1,25 +1,38 @@
 import requests
 import connect
 
-# This file will need to use the DataManager, FlightSearch, FlightData, NotificationManager
-# classes to achieve the program requirements.
+sheety_params = {
+    "price": {
+        "city": "Memphis",
+        "iataCode": "",
+        "lowestPrice": "450"
+    }
+}
 
+# sheety_response = requests.post(url=connect.SHEETY_ENDPOINT, json=sheety_params)
+sheety_response = requests.get(url=connect.SHEETY_ENDPOINT)
+sheety_results = sheety_response.json()
+# print(sheety_results["prices"][0]["city"])
+# print(sheety_results["prices"][0]["iataCode"])
+# print(sheety_results["prices"][0]["lowestPrice"])
+
+for record in sheety_results["prices"]:
+    print(record["city"])
+    print(record["iataCode"])
+    print(record["lowestPrice"])
+
+    sheety_params = {
+        "price": {
+            "iataCode": "TEST"
+        }
+    }
+    sheety_response = requests.post(url=connect.SHEETY_ENDPOINT, json=sheety_params)
+    
 # TODO: 1. Use the Flight Search and Sheety API to populate your own copy of the Google Sheet with International Air
 #           Transport Association (IATA) codes for each city. Most of the cities in the sheet include multiple
 #           airports, you want the city code (not the airport code see at the link).
 
-sheety_params = {
-    "price": {
-        "city": "Orange County",
-        "iataCode": "",
-        "lowestPrice": "500"
-    }
-}
 
-sheety_response = requests.post(url=connect.SHEETY_ENDPOINT, json=sheety_params, headers=connect.sheety_headers)
-# sheety_response = requests.get(url=connect.SHEETY_ENDPOINT, headers=connect.sheety_headers)
-sheety_results = sheety_response.json()
-print(sheety_results)
 # TODO: 2. Use the Flight Search API to check for the cheapest flights from tomorrow to 6 months later for all the
 #           cities in the Google Sheet.
 
