@@ -1,41 +1,34 @@
-import requests
-import connect
+from datetime import datetime, timedelta
+from data_manager import DataManager
+from flight_search import FlightSearch
+from notification_manager import NotificationManager
 
-# Populate the Google Sheet with IATA codes
-# sheety_response = requests.get(url=connect.SHEETY_ENDPOINT)
-# sheety_results = sheety_response.json()
+data_manager = DataManager()
+sheet_data = data_manager.get_destination_data()
+flight_search = FlightSearch()
+notification_manager = NotificationManager()
 
-# for record in sheety_results["prices"]:
-#     kiwi_params = {
-#         "term": record["city"]
-#     }
-#
-#     kiwi_response = requests.get(url=connect.KIWI_ENDPOINT, params=kiwi_params, headers=connect.KIWI_HEADERS)
-#     kiwi_data = kiwi_response.json()
-#
-#     sheety_params = {
-#         "price": {
-#             "iataCode": kiwi_data["locations"][0]["code"]
-#         }
-#     }
-#     sheety_response = requests.put(url=f"{connect.SHEETY_ENDPOINT}/{record['id']}", json=sheety_params)
+ORIGIN_CITY_IATA = "LON"
 
+if sheet_data[0]["iataCode"] == "":
+    for row in sheet_data:
+        row["iataCode"] = flight_search.get_destination_code(row["city"])
+    data_manager.destination_data = sheet_data
+    data_manager.update_destination_codes()
 
-sheety_response = requests.get(url=connect.SHEETY_ENDPOINT)
-sheety_results = sheety_response.json()
+tomorrow = datetime.now() + timedelta(days=1)
+six_month_from_today = datetime.now() + timedelta(days=(6 * 30))
 
-ENDPOINT = "https://api.tequila.kiwi.com/v2/search?"
-
-for record in sheety_results["prices"]:
-    kiwi_params = {
-        "fly_from": "LON",
-        "fly_to": record["iataCode"],
-        "dateFrom": "04/06/2023",
-        "dateTo": "10/06/2023",
-        "max_stopovers": 0,
-        "curr": "GBP",
-    }
-
-    kiwi_response = requests.get(url=ENDPOINT, params=kiwi_params, headers=connect.KIWI_HEADERS)
-    kiwi_data = kiwi_response.json()
-    print(f"{record['city']} {kiwi_data['data'][0]['price']}")
+for destination in sheet_data:
+    flight = flight_search.check_flights(
+        ORIGIN_CITY_IATA,
+        destination["iataCode"],
+        from_time=tomorrow,
+        to_time=six_month_from_today
+    )
+    if flight.price < destination["lowestPrice"]:
+        notification_manager.send_sms(
+            message=f"Low price alert! Only £{flight.price} to fly from {flight.origin_city}-{flight.origin_airport} "
+                    f"to {flight.destination_city}-{flight.destination_airport}, "
+                    f"from {flight.out_date} to {flight.return_date}."
+        )
