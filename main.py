@@ -1,45 +1,41 @@
 import requests
 import connect
 
-sheety_params = {
-    "price": {
-        "city": "Memphis",
-        "iataCode": "",
-        "lowestPrice": "450"
-    }
-}
+# Populate the Google Sheet with IATA codes
+# sheety_response = requests.get(url=connect.SHEETY_ENDPOINT)
+# sheety_results = sheety_response.json()
 
-# sheety_response = requests.post(url=connect.SHEETY_ENDPOINT, json=sheety_params)
+# for record in sheety_results["prices"]:
+#     kiwi_params = {
+#         "term": record["city"]
+#     }
+#
+#     kiwi_response = requests.get(url=connect.KIWI_ENDPOINT, params=kiwi_params, headers=connect.KIWI_HEADERS)
+#     kiwi_data = kiwi_response.json()
+#
+#     sheety_params = {
+#         "price": {
+#             "iataCode": kiwi_data["locations"][0]["code"]
+#         }
+#     }
+#     sheety_response = requests.put(url=f"{connect.SHEETY_ENDPOINT}/{record['id']}", json=sheety_params)
+
+
 sheety_response = requests.get(url=connect.SHEETY_ENDPOINT)
 sheety_results = sheety_response.json()
-# print(sheety_results["prices"][0]["city"])
-# print(sheety_results["prices"][0]["iataCode"])
-# print(sheety_results["prices"][0]["lowestPrice"])
+
+ENDPOINT = "https://api.tequila.kiwi.com/v2/search?"
 
 for record in sheety_results["prices"]:
-    print(record["city"])
-    print(record["iataCode"])
-    print(record["lowestPrice"])
-
-    sheety_params = {
-        "price": {
-            "iataCode": "TEST"
-        }
+    kiwi_params = {
+        "fly_from": "LON",
+        "fly_to": record["iataCode"],
+        "dateFrom": "04/06/2023",
+        "dateTo": "10/06/2023",
+        "max_stopovers": 0,
+        "curr": "GBP",
     }
-    sheety_response = requests.post(url=connect.SHEETY_ENDPOINT, json=sheety_params)
-    
-# TODO: 1. Use the Flight Search and Sheety API to populate your own copy of the Google Sheet with International Air
-#           Transport Association (IATA) codes for each city. Most of the cities in the sheet include multiple
-#           airports, you want the city code (not the airport code see at the link).
 
-
-# TODO: 2. Use the Flight Search API to check for the cheapest flights from tomorrow to 6 months later for all the
-#           cities in the Google Sheet.
-
-
-# TODO: 3. If the price is lower than the lowest price listed in the Google Sheet then send an SMS to your own number
-#           with the Twilio API.
-
-
-# TODO: 4. The SMS should include the departure airport IATA code, destination airport IATA code, departure city,
-#           destination city, flight price and flight dates. e.g.
+    kiwi_response = requests.get(url=ENDPOINT, params=kiwi_params, headers=connect.KIWI_HEADERS)
+    kiwi_data = kiwi_response.json()
+    print(f"{record['city']} {kiwi_data['data'][0]['price']}")
